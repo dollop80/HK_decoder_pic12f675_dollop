@@ -1,0 +1,275 @@
+MPLINK 4.49, Linker
+Linker Map File - Created Thu Feb 26 14:47:46 2015
+
+                                 Section Info
+                  Section       Type    Address   Location Size(Bytes)
+                ---------  ---------  ---------  ---------  ---------
+             RESET_VECTOR       code   0x000000    program   0x000002
+                   .cinit    romdata   0x000001    program   0x000004
+               INT_VECTOR       code   0x000004    program   0x000374
+                   .org_0       code   0x0003ff    program   0x000002
+.config_2007_12F675TEMP.O       code   0x002007    program   0x000002
+                       EE       code   0x002100    program   0x000052
+                       ID       code   0x002130    program   0x000014
+                       FS       code   0x002140    program   0x000020
+                  INT_VAR      udata   0x000020       data   0x000035
+
+
+
+                              Program Memory Usage 
+                               Start         End      
+                           ---------   ---------      
+                            0x000000    0x000002      
+                            0x000004    0x0001bd      
+                            0x0003ff    0x0003ff      
+                            0x002007    0x002007      
+                            0x002100    0x002128      
+                            0x002130    0x002139      
+                            0x002140    0x00214f      
+            514 out of 1168 program addresses used, program memory utilization is 44%
+
+
+
+                              Symbols - Sorted by Name
+                     Name    Address   Location    Storage File                     
+                ---------  ---------  ---------  --------- ---------                
+                    Again   0x0000a8    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                 AreEqual   0x000112    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+               Bind_Lesen   0x0001a8    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                 CheckSum   0x000156    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   Ck_Sum   0x000105    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                     Cont   0x000025    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+           Cont_Bind_Info   0x00008b    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+        Cont_Channel_Data   0x0000c9    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+             Cont_Receive   0x00004f    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+          Copy_CH2_EEProm   0x000148    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+             Copy_Ch_Data   0x00017c    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                Copy_Cont   0x000184    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+              EEProm_Read   0x0001b6    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+             EEProm_Write   0x000191    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                 EE_Again   0x00014f    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                  EE_Wait   0x00019d    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                     Fail   0x000178    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+          Fail_Safe_Lesen   0x0001a1    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+        HouseKeeping_Exit   0x000029    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                  II_Loop   0x00006e    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   I_Loop   0x00006c    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                I_Loop500   0x000060    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                  L_Again   0x0001b0    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                    Lesen   0x0001af    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                Next_Byte   0x0000b5    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+             Next_Channel   0x00010c    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                Normal_Op   0x000048    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+             Not_StartBit   0x00001d    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                 Not_Zero   0x0000fe    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   O_Loop   0x00006a    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+      Output_Channel_Data   0x0000f7    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+     Prepare_Channel_Time   0x000129    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                 Read_Bit   0x00000c    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+        Receive_Bind_Info   0x000086    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+     Receive_Channel_Data   0x0000c3    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+             Request_Bind   0x000053    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                Save_Byte   0x0000ef    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                Schreiben   0x0000a1    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+           Send_Bind_Info   0x0000ae    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                 Send_Bit   0x00001b    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+  Setup_For_Send_BindInfo   0x000075    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+Setup_Registers_for_Receive   0x000080    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+              Signal_Loss   0x0000eb    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                 Stop_Bit   0x000019    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                Sum_Up_Hi   0x00016c    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                Sum_Up_Lo   0x00015d    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+               Switch_OFF   0x000021    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                Switch_ON   0x000024    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                     Term   0x00005d    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+     Timer1_Channel_Pulse   0x00013b    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+              Timer1_Sync   0x00011c    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                Use_As_Is   0x000108    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                 Wait200m   0x000068    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                 Wait500u   0x00005f    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+             Wait_Between   0x0000f4    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                Wait_Ch_H   0x000142    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                Wait_Ch_L   0x000124    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+          Wait_For_Event1   0x000090    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+          Wait_For_Event2   0x0000d3    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                Wait_Send   0x0000b8    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                     init   0x000036    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                     main   0x000031    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                 not3chan   0x000113    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                Bit_Count   0x000023       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                    Byte1   0x00002d       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   Byte10   0x000036       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   Byte11   0x000037       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   Byte12   0x000038       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   Byte13   0x000039       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   Byte14   0x00003a       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   Byte15   0x00003b       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   Byte16   0x00003c       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   Byte17   0x00003d       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   Byte18   0x00003e       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                    Byte2   0x00002e       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                    Byte3   0x00002f       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                    Byte4   0x000030       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                    Byte5   0x000031       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                    Byte6   0x000032       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                    Byte7   0x000033       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                    Byte8   0x000034       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                    Byte9   0x000035       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+               Byte_Count   0x000024       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                  CP_High   0x000054       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   CP_Low   0x000053       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+               Cksum_High   0x00002b       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+               Copy_Byte1   0x00003f       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+              Copy_Byte10   0x000048       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+              Copy_Byte11   0x000049       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+              Copy_Byte12   0x00004a       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+              Copy_Byte13   0x00004b       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+              Copy_Byte14   0x00004c       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+              Copy_Byte15   0x00004d       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+              Copy_Byte16   0x00004e       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+               Copy_Byte2   0x000040       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+               Copy_Byte3   0x000041       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+               Copy_Byte4   0x000042       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+               Copy_Byte5   0x000043       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+               Copy_Byte6   0x000044       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+               Copy_Byte7   0x000045       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+               Copy_Byte8   0x000046       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+               Copy_Byte9   0x000047       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                Fail_Safe   0x000051       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                From_Adrs   0x000026       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   IInner   0x000029       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                    Inner   0x000028       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                My_Status   0x000022       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                  My_Temp   0x00004f       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                    Outer   0x00002a       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+               SL_Counter   0x000052       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+         Selected_Channel   0x000050       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                ShiftData   0x000025       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                     Temp   0x00002c       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                  To_Adrs   0x000027       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+              status_temp   0x000021       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   w_temp   0x000020       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+
+
+
+                              Symbols - Sorted by Address
+                     Name    Address   Location    Storage File                     
+                ---------  ---------  ---------  --------- ---------                
+                 Read_Bit   0x00000c    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                 Stop_Bit   0x000019    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                 Send_Bit   0x00001b    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+             Not_StartBit   0x00001d    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+               Switch_OFF   0x000021    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                Switch_ON   0x000024    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                     Cont   0x000025    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+        HouseKeeping_Exit   0x000029    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                     main   0x000031    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                     init   0x000036    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                Normal_Op   0x000048    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+             Cont_Receive   0x00004f    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+             Request_Bind   0x000053    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                     Term   0x00005d    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                 Wait500u   0x00005f    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                I_Loop500   0x000060    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                 Wait200m   0x000068    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   O_Loop   0x00006a    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   I_Loop   0x00006c    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                  II_Loop   0x00006e    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+  Setup_For_Send_BindInfo   0x000075    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+Setup_Registers_for_Receive   0x000080    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+        Receive_Bind_Info   0x000086    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+           Cont_Bind_Info   0x00008b    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+          Wait_For_Event1   0x000090    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                Schreiben   0x0000a1    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                    Again   0x0000a8    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+           Send_Bind_Info   0x0000ae    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                Next_Byte   0x0000b5    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                Wait_Send   0x0000b8    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+     Receive_Channel_Data   0x0000c3    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+        Cont_Channel_Data   0x0000c9    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+          Wait_For_Event2   0x0000d3    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+              Signal_Loss   0x0000eb    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                Save_Byte   0x0000ef    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+             Wait_Between   0x0000f4    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+      Output_Channel_Data   0x0000f7    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                 Not_Zero   0x0000fe    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   Ck_Sum   0x000105    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                Use_As_Is   0x000108    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+             Next_Channel   0x00010c    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                 AreEqual   0x000112    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                 not3chan   0x000113    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+              Timer1_Sync   0x00011c    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                Wait_Ch_L   0x000124    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+     Prepare_Channel_Time   0x000129    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+     Timer1_Channel_Pulse   0x00013b    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                Wait_Ch_H   0x000142    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+          Copy_CH2_EEProm   0x000148    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                 EE_Again   0x00014f    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                 CheckSum   0x000156    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                Sum_Up_Lo   0x00015d    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                Sum_Up_Hi   0x00016c    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                     Fail   0x000178    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+             Copy_Ch_Data   0x00017c    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                Copy_Cont   0x000184    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+             EEProm_Write   0x000191    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                  EE_Wait   0x00019d    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+          Fail_Safe_Lesen   0x0001a1    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+               Bind_Lesen   0x0001a8    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                    Lesen   0x0001af    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                  L_Again   0x0001b0    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+              EEProm_Read   0x0001b6    program     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   w_temp   0x000020       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+              status_temp   0x000021       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                My_Status   0x000022       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                Bit_Count   0x000023       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+               Byte_Count   0x000024       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                ShiftData   0x000025       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                From_Adrs   0x000026       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                  To_Adrs   0x000027       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                    Inner   0x000028       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   IInner   0x000029       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                    Outer   0x00002a       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+               Cksum_High   0x00002b       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                     Temp   0x00002c       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                    Byte1   0x00002d       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                    Byte2   0x00002e       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                    Byte3   0x00002f       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                    Byte4   0x000030       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                    Byte5   0x000031       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                    Byte6   0x000032       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                    Byte7   0x000033       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                    Byte8   0x000034       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                    Byte9   0x000035       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   Byte10   0x000036       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   Byte11   0x000037       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   Byte12   0x000038       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   Byte13   0x000039       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   Byte14   0x00003a       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   Byte15   0x00003b       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   Byte16   0x00003c       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   Byte17   0x00003d       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   Byte18   0x00003e       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+               Copy_Byte1   0x00003f       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+               Copy_Byte2   0x000040       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+               Copy_Byte3   0x000041       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+               Copy_Byte4   0x000042       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+               Copy_Byte5   0x000043       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+               Copy_Byte6   0x000044       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+               Copy_Byte7   0x000045       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+               Copy_Byte8   0x000046       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+               Copy_Byte9   0x000047       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+              Copy_Byte10   0x000048       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+              Copy_Byte11   0x000049       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+              Copy_Byte12   0x00004a       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+              Copy_Byte13   0x00004b       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+              Copy_Byte14   0x00004c       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+              Copy_Byte15   0x00004d       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+              Copy_Byte16   0x00004e       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                  My_Temp   0x00004f       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+         Selected_Channel   0x000050       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                Fail_Safe   0x000051       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+               SL_Counter   0x000052       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                   CP_Low   0x000053       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+                  CP_High   0x000054       data     static D:\TXT\rc\HK_decoder-dollop\PIC 12F675 Decoder21 with PPM output_dollop\12F675TEMP.ASM
+
+

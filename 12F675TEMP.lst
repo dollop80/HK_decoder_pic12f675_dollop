@@ -1,0 +1,1788 @@
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE  1
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00001 ;Versuch den 2.4 Ghz Empfänger zu steuern
+                      00002 ;Es müssen Bind-Daten gelesen und gesendet werden
+                      00003 ;Es müssen Kanaldaten gelesen und in Kanalimpulse umgewandelt werden
+                      00004 ;Da der 12F675 PIC nicht genügend Pins für Servoausgänge hat, wäre er nicht für einen größeren Empfänger
+                             zu verwenden.
+                      00005 ;Aber die prinzipiellen Funktionen könnten damit entwickelt werden.
+                      00006 ;Wobei aber die Frage ist, ob es sich dann lohnt oder ob nicht gleich mit einem entsprechenden Chip
+                      00007 ;angefangen werden sollte.
+                      00008 ;es ist ein 10 MHz Quarz vorzusehen
+                      00009 
+                      00010 ;Level change IR und Timer0 IR werden enabled
+                      00011 ;Das Startbit löst einen LevelChange IR aus
+                      00012 ;In der Ir Service Routine muß erst einmal housekeeping gemacht werden
+                      00013 ;dasdauert 
+                      00014 ;dann wird der Pegel eingelesen
+                      00015 ;Dann wird der timer0 mit ca 12 usec neu gestartet
+                      00016 ;der timer soll so lange laufen, daß er später kommt als eine eventuelle Flanke des Eingangssignals
+                      00017 ;die interrupt flags werden gelöscht.
+                      00018 ;Der Rest der Verarbeitung muß dann erledigt werden
+                      00019 ;und dannwieder das housekeeping rückwärts
+                      00020 ;und das alles in max 23 usec
+                      00021 ;entweder der Timer0 timed aus oder es tritt eine neue Flanke (level change) auf und führt zum Interrupt
+                            .
+                      00022 
+                      00023 ;Mit Timer0 kann man die Zeit für die einzelnen Bits messen
+                      00024 ;
+                      00025 ;**********************************************************************
+                      00026 ;                                                                     *
+                      00027 ;    Filename:      xxx.asm                                           *
+                      00028 ;    Date:                                                            *
+                      00029 ;    File Level:                                                      *
+                      00030 ;                                                                     *
+                      00031 ;    Author:                                                          *
+                      00032 ;    Company:                                                         *
+                      00033 ;                                                                     * 
+                      00034 ;                                                                     *
+                      00035 ;**********************************************************************
+                      00036 ;                                                                     *
+                      00037 ;    Files required:                                                  *
+                      00038 ;                    12F675.lkr                                       *
+                      00039 ;                                                                     *
+                      00040 ;                                                                     *
+                      00041 ;**********************************************************************
+                      00042 ;                                                                     *
+                      00043 ;    Notes:                                                           *
+                      00044 ;    Pin1:       Vdd        + 5Volt                                   *
+                      00045 ;    Channel-Output GPIO 0  Pin 7                                     *
+                      00046 ;    Channel-Output GPIO 1  Pin 6                                     *
+                      00047 ;    Signal-In/Out  GPIO 2  Pin 5 Dataline                            *
+                      00048 ;    Signal-Input:  GPIO 3  Pin 4 Bind Pin                            *
+                      00049 ;    Input:         GPIO 4  Pin 3 Oscillator Quarz                    *
+                      00050 ;    Input:         GPIO 5  Pin 2 Oscillator Quarz                    *
+                      00051 ;    Pin8:       Vss        Minus                                     *
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE  2
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00052 ;                                                                     *
+                      00053 ;                                                                                                       
+                                                              *
+                      00054 ;                                                                     *     
+                      00055 ;                                                                     *     
+                      00056 ;   _MCLRE_OFF muß gesetzt sein                                       *     
+                      00057 ;   _BODEN_ON  weil der IC an der Spannung des Empfängers hängt       *
+                      00058 ;**********************************************************************
+                      00059 
+                      00060         list      p=12f675              ; list directive to define processor
+                      00061         #include <p12f675.inc>  ; processor specific variable definitions
+                      00001         LIST
+                      00002 ; P12F675.INC  Standard Header File, Version 1.04    Microchip Technology, Inc.
+                      00284         LIST
+                      00062 
+                      00063         errorlevel  -302                ; suppress message 302 from list file
+                      00064 
+                      00065 
+                      00066 ;Quarz Oszillator mit mindestens 10 MHz (Höchstfrequenz bei 3.3 Volt Spannung) verwendet werden.
+2007   3FC2           00067         __CONFIG   _CP_OFF & _CPD_OFF & _BODEN_ON & _MCLRE_OFF & _WDT_OFF & _PWRTE_ON & _HS_OSC  
+                      00068 
+                      00069 
+                      00070 ;***** VARIABLE DEFINITIONS **********
+                      00071 #define         Positive                        0                       ;Positive =1 ->  ----|_|------|_
+                            |-------|_|------------------------------|_|----
+                      00072 
+                      00073                                                                                         ;Posirive =0 -> 
+                             ____|-|______|-|_______|-|______________________________|-|____
+                      00074 
+                      00075 #define         PPM_Fail_Safe           1                       ;PPM_Fail_Safe = 0  --> With signal loss
+                            , PPM signal is switched off
+                      00076                                                                                         ;PPM_Fail_Safe =
+                             1  --> With signal loss, PPM signal is switched to Failsafe setting                            
+                      00077 
+                      00078 #define         Max_Signal_Lost         .3                      ;number of contigous Signal_Lost conditi
+                            ons
+                      00079                                                                                         ;before activati
+                            ng Fail_Safe position
+                      00080                                                                                 
+                      00081                                                                                 
+                      00082 ;*******************************************************************************************************
+                            *******************                     
+                      00083 
+                      00084 #define         Prog_Level              "21PPM" ;Die Programmversion kenntlich machen
+                      00085 #define         Sample_Time             .176            ;Dieser Wert ist korrekt !!! Read (Bind)-Data ch
+                            eck .178
+                      00086 #define         Full_Bit_Time   .185            ;Dieser Wert funktioniert!!!! Send Bind-Data  check .182
+                      00087 #define         Number_of_Channels      .8              ;Number of servo channels to be supported (1 - 8
+                            )
+                      00088 #define         Servo_Lines             GPIO            ;Adress of GPIO for PIC12f675
+                      00089 
+                      00090 
+                      00091 ;*******************************************************************************************************
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE  3
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                            *******************
+                      00092 
+                      00093 
+                      00094 #define         InputLevel      My_Status,0
+                      00095 #define         BitFound        My_Status,1
+                      00096 #define         Send_Bind       My_Status,2
+                      00097 #define         Send            My_Status,3
+                      00098 #define         StartBit        My_Status,4
+                      00099 #define         StopBit         My_Status,5
+                      00100 #define         With_Startbit   My_Status,6     
+                      00101 #define         Checksum_Ok     My_Status,7
+                      00102 ;-------------------------------------------------------
+                      00103 #define         Signal_Lost             Fail_Safe,0             
+                      00104 #define         FS_Done                 Fail_Safe,1
+                      00105 #define         Restored                Fail_Safe,2
+                      00106 
+                      00107 ;*******************************************************************************************************
+                            *******************                                             
+                      00108 #define         Channel3            GPIO,0              ;Channel 3
+                      00109 #define         PPM_Out         Servo_Lines,1                   ;Ausgang für Kanal1
+                      00110 #define         DataLine                GPIO,2                  ;Auf diesen Eingang die Dataline des Rec
+                            eivers legen
+                      00111 #define         BindLine                GPIO,3                  ;Auf diesen Pin den Bind-Plug stecken
+                      00112 ;#define                LED                             GPIO,0                  ;Anzeige LED "Bind compl
+                            ete" / "Online" / Debug
+                      00113 
+                      00114 ;---------------------------------------------------------------------------
+                      00115 
+                      00116 ; example of using Shared Uninitialized Data Section
+                      00117 INT_VAR         UDATA_SHR       0x20   
+0020                  00118 w_temp          RES     1               ;0x20  variable used for context saving 
+0021                  00119 status_temp     RES     1               ;0x21  variable used for context saving
+0022                  00120 My_Status       RES             1               ;0x22
+0023                  00121 Bit_Count       RES             1               ;0x23
+0024                  00122 Byte_Count      RES             1               ;0x24
+0025                  00123 ShiftData       RES             1               ;0x25
+0026                  00124 From_Adrs       RES             1               ;0x26
+0027                  00125 To_Adrs         RES             1               ;0x27
+0028                  00126 Inner           RES             1               ;0x28
+0029                  00127 IInner          RES             1               ;0x29
+002A                  00128 Outer           RES             1               ;0x2a
+002B                  00129 Cksum_High      RES             1               ;0x2b
+002C                  00130 Temp            RES             1               ;0x2c
+002D                  00131 Byte1           RES             1               ;0x2d
+002E                  00132 Byte2           RES             1               ;0x2e
+002F                  00133 Byte3           RES             1               ;0x2f
+0030                  00134 Byte4           RES             1               ;0x30
+0031                  00135 Byte5           RES             1               ;0x31
+0032                  00136 Byte6           RES             1               ;0x32
+0033                  00137 Byte7           RES             1               ;0x33
+0034                  00138 Byte8           RES             1               ;0x34
+0035                  00139 Byte9           RES             1               ;0x35
+0036                  00140 Byte10          RES             1               ;0x36
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE  4
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0037                  00141 Byte11          RES             1               ;0x37
+0038                  00142 Byte12          RES             1               ;0x38
+0039                  00143 Byte13          RES             1               ;0x39
+003A                  00144 Byte14          RES             1               ;0x3a
+003B                  00145 Byte15          RES             1               ;0x3b
+003C                  00146 Byte16          RES             1               ;0x3c
+003D                  00147 Byte17          RES             1               ;0x3d
+003E                  00148 Byte18          RES             1               ;0x3e
+003F                  00149 Copy_Byte1      RES             1               ;0x3f
+0040                  00150 Copy_Byte2      RES             1               ;0x40
+0041                  00151 Copy_Byte3      RES             1               ;0x41
+0042                  00152 Copy_Byte4      RES             1               ;0x42
+0043                  00153 Copy_Byte5      RES             1               ;0x43
+0044                  00154 Copy_Byte6      RES             1               ;0x44
+0045                  00155 Copy_Byte7      RES             1               ;0x45
+0046                  00156 Copy_Byte8      RES             1               ;0x46
+0047                  00157 Copy_Byte9      RES             1               ;0x47
+0048                  00158 Copy_Byte10     RES             1               ;0x48
+0049                  00159 Copy_Byte11     RES             1               ;0x49
+004A                  00160 Copy_Byte12     RES             1               ;0x4a
+004B                  00161 Copy_Byte13     RES             1               ;0x4b
+004C                  00162 Copy_Byte14     RES             1               ;0x4c
+004D                  00163 Copy_Byte15     RES             1               ;0x4d
+004E                  00164 Copy_Byte16     RES             1               ;0x4e
+004F                  00165 My_Temp         RES             1
+0050                  00166 Selected_Channel        RES     1
+0051                  00167 Fail_Safe       RES             1               ;0x51
+0052                  00168 SL_Counter      RES             1
+0053                  00169 CP_Low          RES             1               
+0054                  00170 CP_High         RES             1
+                      00171 
+                      00172 ;**********************************************************************
+                      00173 RESET_VECTOR    CODE    0x000   ; processor reset vector
+0000   2???           00174                 goto    main                    ; go to beginning of program
+                      00175 
+                      00176 ;========================================================================
+                      00177 ;************************************************************************
+                      00178 INT_VECTOR      CODE    0x004           ; interrupt vector location
+0004   00??           00179                 movwf   w_temp                  ;copy W to temp-register
+0005   0E03           00180                 swapf   STATUS,W                ;swap status into W   Bank 0,1                  
+0006   1283           00181                 bcf             STATUS,RP0              ;change to Bank 0
+0007   00??           00182                 movwf   status_temp             ; save STATUS to bank 0 register                
+                      00183 
+                      00184                 ;bsf            LED             ;!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!mein Synch Impuls fürs S
+                            cope
+0008   0000           00185                 nop ;instead if LED
+0009   0000           00186         nop                                             ;don't change timing
+                      00187                 
+000A   1900           00188                 btfsc   Send_Bind
+000B   2???           00189                 goto    Send_Bit                ;have to send binding information
+                      00190                 
+                      00191                 
+                      00192 ;---------- Read Binding or channel Information ----------------------------
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE  5
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+000C                  00193 Read_Bit
+                      00194         ;bits are put into Shiftdata at bitposition 7 and shifted right with every sample. So first bit 
+                            will become low order bit
+                      00195         ;Startbit will be shifted out of byte and stop bit (at bitcount 1) will skip shifting 
+                      00196         ;BitFound signals the waiting outside routine, that we had a sampling time.
+                      00197         
+000C   1480           00198                 bsf             BitFound                ;We have a bit weil wir einen Interrupt hatten. 
+                            Entweder ist der Timer ausgetimed oder 
+                      00199                                                                 ;der Eingangspegel hat sich geändert.
+                      00200         ;Das Stopbit ist bei Bit_Count=1.Es wird nicht in ShiftData geladen
+                      00201         ;test if this is a stop bit
+000D   3001           00202                 movlw   1
+000E   02??           00203                 subwf   Bit_Count,W             ;Ergebnis in W
+000F   1903           00204                 btfsc   STATUS,Z                ;Skip if not Zero; this is a Databit
+0010   2???           00205                 goto    Stop_Bit                ;Bit_Count=1, we have the Stopbit. Don't sample it into 
+                            ShiftData
+                      00206                 
+0011   0C??           00207                 rrf             ShiftData,1             ;rotate right, schafft Platz für ein neues bit. 
+                            Result nach ShiftData           
+                      00208 
+                      00209                 ;re-start T0 for the next sampling time. don't activate IR
+0012   30B0           00210                 movlw   Sample_Time                     ;Timer läuft hier bereits los, IR WIRD ABER ERST
+                             SPÄTER enabled
+0013   0081           00211                 movwf   TMR0                            ;Bank0          
+                      00212                 
+                      00213                 ;Datenbit schon mal setzen
+0014   1780           00214                 bsf             ShiftData,7             ;set bit 7 to high
+                      00215                 ;den Pegel des Eingangs-Signals testen          
+0015   1D05           00216                 btfss   DataLine                ;Pegel überprüfen                       
+                      00217                 ;Das Bit wieder löschen, wenn der Pegel Low war
+0016   1380           00218                 bcf             ShiftData,7             ;no, set Bit 7 low      
+                      00219                 
+0017   30A8           00220                 movlw   0xA8                    ;prepare for Timer and Levelchange IR !!!!!!!!!!!!!!!!!!
+                            !!!!!!!!!!!!!!!!!!!
+                      00221 ;               movlw   0x88                    ;nur Levelchange Interrupt!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                            !!!!!!!!!
+                      00222                 
+0018   2???           00223                 goto    HouseKeeping_Exit
+                      00224                 
+0019                  00225 Stop_Bit
+                      00226         ;when we have read all bits, disable all IR and stop receiving
+0019   3000           00227                 movlw   0                               ;Disable Interrupts
+001A   2???           00228                 goto    HouseKeeping_Exit               
+                      00229 
+                      00230 ;------------Receiver mode: Send Binding Information--------------------------------------
+001B                  00231 Send_Bit
+001B   1A00           00232                 btfsc   StartBit                ;must we send the start bit?
+001C   2???           00233                 goto    Switch_OFF              ;yes, jump to Switch_OFF
+                      00234                 
+001D                  00235 Not_StartBit            
+                      00236         ;when we send binding information we send 15 bits. The startbit, 8 databits and several stopbits
+                      00237         ;the W register contains the byte to be sent. Before shifting the W-register we set the carry bi
+                            t on.
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE  6
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00238         ;We shift the bits right -> through carry every sample time pushing the lowest bit into the carr
+                            y position
+                      00239         ;and the old carry (a 1 bit) as bit 7. By this, we fill up the byte with 1's that we use afterwa
+                            rds as stop bits
+                      00240         ;After shifting, we test the carry bit to set dataline high or low.
+                      00241                 
+001D   1403           00242                 bsf             STATUS,C                ;fills up the Byte with 1's from top to bottom a
+                            nd produces the stop bit
+                      00243                 ;jetzt ist das carry bit gesetzt und mit dem rrf wird es als high order bit reingeschobe
+                            n
+001E   0C80           00244                 rrf             INDF,F                  ;Das nächste Bit ins Carry shiften              
+                      00245                 ;jetzt wurde Bit0 ins carry geschoben. Das wird jetzt überprüft
+001F   1803           00246                 btfsc   STATUS,C                ;Ist das Carry gesetzt?
+0020   2???           00247                 goto    Switch_ON               ;Ist gesetzt, deshalb nach Switch_ON
+0021                  00248 Switch_OFF              
+0021   1105           00249                 bcf             DataLine                ;Ist nicht gesetzt, deshalb OFF. Ausgang Low
+0022   1200           00250                 bcf             StartBit                ;lösche Startbit Indikation
+0023   2???           00251                 goto    Cont
+0024                  00252 Switch_ON               
+0024   1505           00253                 bsf             DataLine                ;Ausgang High
+0025                  00254 Cont                            
+0025   30B9           00255                 movlw   Full_Bit_Time   
+0026   0081           00256                 movwf   TMR0                            ;Bank0          
+0027   1180           00257                 bcf             Send                            ;reset Indicator for outside routine
+0028   30A0           00258                 movlw   0xA0    ;GIE + T0IE                     ;Beim Senden nur Timer IR
+                      00259 ;-------------------------------------------------------------------------------------
+                      00260                 
+                      00261 
+0029                  00262 HouseKeeping_Exit
+                      00263                 ;Wir setzen das Interrupt Control Register komplett neu auf
+0029   008B           00264                 movwf   INTCON                  ;       Bank 0,1
+                      00265 
+                      00266 ;SELTSAM !!!!!! wenn ich nicht in der Interruptroutine auf das GPIO Register zugreife,z.B. mit bsf LED o
+                            der ähnlich,
+                      00267 ;dann läuft der Timer für den zweiten Kanal über die gesamte Zeit beider Register. Es ist also so, als o
+                            b man den Timer1 mit einem
+                      00268 ;Wert von 0 starten würde. Ich habe keine Ahnung was das soll. Solange in dieser Routine ein bsf LED (od
+                            er channel1) und ein 
+                      00269 ;entsprechendes bcf LED zur Erzeugung eines Sync-Pulses fürs Scope war, funktioniert es
+                      00270 ;Deshalb muß dieser "sinnnlose" Befehl hier drinnen sein.!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                      00271 
+                      00272 ;This is a miracle. Without one of these two instructions, the Timer1 for the channel pulses doesn't wor
+                            k correctly
+002A   0805           00273                 movfw   Servo_Lines             ;Bank0
+                      00274                 ;bcf            LED             ;!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!mein Synch Impuls fürs S
+                            cope            
+002B   0000           00275                 nop ;instead of LED
+                      00276 
+002C   0E??           00277                 swapf   status_temp,W   ; retrieve copy of STATUS register
+002D   0083           00278                 movwf   STATUS                  ; restore pre-isr STATUS register contents Bank 0,1
+002E   0E??           00279                 swapf   w_temp,F
+002F   0E??           00280                 swapf   w_temp,W                ; restore pre-isr W register contents
+0030   0009           00281                 retfie                                  ; return from interrupt
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE  7
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00282 ;*******************************************************************************
+                      00283 ;********************* 19 Befehle lang **********************************************************
+                      00284 ;******************************************************************************
+                      00285 
+                      00286 ;                                               Ende der Interrupt Routine
+                      00287 ;*******************************************************************************
+                      00288 ;========================================================================================
+                      00289 ;*******************************************************************************
+                      00290 
+                      00291 ; these first 4 instructions are not required if the internal oscillator is not used
+                      00292 ;but they preserve the OscCal value
+0031                  00293 main
+0031   23FF           00294                 call    0x3FF                   ; retrieve factory calibration value
+0032   1683           00295                 bsf     STATUS,RP0              ; set file register bank to 1    
+0033   1383           00296                 bcf     STATUS,IRP
+0034   1303           00297                 bcf     STATUS,RP1
+0035   0090           00298                 movwf   OSCCAL                  ; update register with factory cal value   Bank 1
+                      00299                 
+                      00300                 
+                      00301 ;=====================Initialisierung===========================================
+                      00302 ; remaining code goes here
+                      00303 
+0036                  00304 init
+0036   018C           00305                 clrf    PIE1                    ;Bank1
+                      00306                 ;Ein- und Ausgänge zuordnen
+0037   019F           00307                 clrf    ANSEL                   ;alle IO/O Ports sind digital                           
+                                                    Bank 1
+                      00308                 
+0038   0185           00309                 clrf    TRISIO                  ;alles Output mit Ausnahme von GP3                      
+                                              Bank 1
+                      00310                 
+                      00311                         
+0039   3008           00312                 movlw   0x08                            
+003A   0081           00313                 movwf   OPTION_REG              ;Kein Prescaler für Timer0, internal Clock, GPIO pullups
+                             enabled                        Bank 1
+                      00314         
+                      00315                 
+003B   1283           00316                 bcf             STATUS,RP0              ;select bank 0  
+                      00317                                 
+003C   3004           00318                 movlw   0x04
+003D   0085           00319                 movwf   Servo_Lines                     ;Dataline high, that the receiver doesn't switch
+                             to bind mode by itself. All outputs low. Bank0
+                      00320                                                                                 
+003E   3007           00321                 movlw   07                              ;               
+003F   0099           00322                 movwf   CMCON                   ;switch off comparator                                  
+                                    Bank 0          
+                      00323                 
+0040   3020           00324                 movlw   0x20    
+0041   0090           00325                 movwf   T1CON           ;enable Timer1 prescaler 4 : 1; Timer off               Bank 0
+                      00326         
+                      00327 ;test, if the bind plug is plugged
+0042   1D85           00328                 btfss   BindLine                ;is high for normal op, low if bind plug plugged  
+0043   2???           00329                 goto    Request_Bind            ;is plugged, so goto Bind Mode          
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE  8
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00330                 
+                      00331                 ;activate fail safe settings
+0044   2???           00332                 call    Fail_Safe_Lesen         ;read fail safe data and copy into Copy_Byte1 - Copy_Byt
+                            e16     
+                      00333                 
+                      00334                 
+                      00335 ;-----------------              
+0045   3003           00336                 movlw   Max_Signal_Lost
+0046   00??           00337                 movwf   SL_Counter
+                      00338                 
+0047   01??           00339                 clrf    My_Temp
+                      00340 
+                      00341 
+                      00342 
+                      00343 ;========================================================================
+                      00344 ;========================================================================               
+                      00345 ;-------------------------------------------------------------------------------------------
+                      00346 ;                                       Normal receive operation
+                      00347 ;-------------------------------------------------------------------------------------------            
+                      00348 ;normal receiver operation (bind plug not plugged) first has to send binding data, that is in the EEPROM
+                      00349 ;Timing is done by Timer0 overflow IR.
+                      00350 ;Timer0 is reloaded every bittime and restartet
+                      00351 ;the receiver then must switch to receive mode and receive 16bit channel data
+0048                  00352 Normal_Op       
+0048   2???           00353                 call    Bind_Lesen                      ;read the Binding Bytes from EEprom and put to B
+                            yte1 - Byte9   !ok geht!
+                      00354                 ;wait 400 msec for the receiver to get powered on
+0049   2???           00355                 call    Wait200m        
+004A   2???           00356                 call    Wait200m        
+004B   2???           00357                 call    Setup_For_Send_BindInfo ;Timer0 free running with 24.4 usec(?) and data output v
+                            ia IR Handler !ok works!        
+004C   1500           00358                 bsf             Send_Bind                               ;Send Bind Information to receiv
+                            er
+004D   2???           00359                 call    Send_Bind_Info          ;wait and send binding information                      
+                                                                            ! ok works !    
+004E   1100           00360                 bcf             Send_Bind
+                      00361 
+004F                  00362 Cont_Receive    
+004F   2???           00363                 call    Setup_Registers_for_Receive             ;setup registers and Timer0     
+0050   2???           00364                 call    Receive_Channel_Data            
+0051   2???           00365                 call    Output_Channel_Data                     ;Servo Kanal Impulse
+                      00366                                                 
+0052   2???           00367                 goto    Cont_Receive
+                      00368                 
+                      00369 ;===============================================================
+                      00370 ;          Bind Receiver with TX
+                      00371 ;===============================================================                        
+                      00372 ;set the receiver into binding mode and try to receive a binding information
+                      00373 ;save that information to EEprom for use with normal receive
+0053                  00374 Request_Bind
+0053   1105           00375                 bcf             DataLine                ;make dataline low to set receiver into bind mod
+                            e
+                      00376 ;wait 50-250 msec with Output GPIO2 low and then make GPIO2 high and an Input 
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE  9
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0054   2???           00377                 call    Wait200m
+0055   1505           00378                 bsf             DataLine                ;make it high, to terminate the "set to bindmode
+                            " 
+                      00379 ;--------------------------------------------------------
+0056   1100           00380                 bcf             Send_Bind
+0057   2???           00381                 call    Setup_Registers_for_Receive             ;setup of registers 
+0058   2???           00382                 call    Wait200m                        ;this delay is very important as obviously there
+                             is anyhow an edge that would trigger receive
+0059   2???           00383                 call    Wait200m
+005A   2???           00384                 call    Receive_Bind_Info
+005B   2???           00385                 call    Schreiben                       ;Write to EEProm
+                      00386                 ;bsf            LED                                     ;switch on "Bind complete"      
+                            LED                                                             Bank 0
+005C   0000           00387         nop ;instead of LED                                             
+005D                  00388 Term    
+005D   0000           00389                 nop                                                     ;Endless loop
+005E   2???           00390                 goto    Term            
+                      00391 
+                      00392 ;========================================================================
+                      00393 ;========================================================================
+                      00394 ;-----------------------------------------------------------------------
+005F                  00395 Wait500u
+005F   01??           00396                 clrf    Inner
+0060                  00397 I_Loop500
+0060   0000           00398                 nop
+0061   0000           00399                 nop
+0062   0000           00400                 nop                                     ;385u
+0063   0000           00401                 nop                                     ;450u
+0064   0000           00402                 nop                                     ;510u
+0065   0B??           00403                 decfsz  Inner,F 
+0066   2???           00404                 goto    I_Loop500
+0067   0008           00405                 return
+                      00406 
+                      00407 ;-----------------------------------------------------------------------                
+                      00408 
+0068                  00409 Wait200m                
+0068   30C8           00410                 movlw   .200    ;setup for 200ms delay  
+0069   00??           00411                 movwf   Outer
+006A                  00412 O_Loop          
+006A   30B4           00413                 movlw   .180
+006B   00??           00414                 movwf   Inner
+006C                  00415 I_Loop  
+006C   3014           00416                 movlw   .20             ;.6
+006D   00??           00417                 movwf   IInner
+006E                  00418 II_Loop
+006E   0B??           00419                 decfsz  IInner,F
+006F   2???           00420                 goto    II_Loop
+0070   0B??           00421                 decfsz  Inner,F
+0071   2???           00422                 goto    I_Loop
+0072   0B??           00423                 decfsz  Outer,F
+0073   2???           00424                 goto    O_Loop
+0074   0008           00425                 return          
+                      00426 ;======================================================================                 
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE 10
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00427                 
+0075                  00428 Setup_For_Send_BindInfo
+                      00429 
+                      00430 ;don't allow Interrupts for Timer0 at this time
+0075   018C           00431                 clrf    PIR1                    ;clear peripheral InterruptFlags Bank 0 ; nur sicherheit
+                            shalber
+0076   018B           00432                 clrf    INTCON                  ;                                                       
+                                    Bank 0,1
+                      00433         
+0077   1683           00434                 bsf             STATUS,RP0              ;select bank 1                                  
+                                                            
+0078   1105           00435                 bcf             TRISIO,2                ;make GP2 an output                             
+                                                            Bank 1  
+0079   1515           00436                 bsf             WPU,2                   ;activate weak pullup                           
+                                                    Bank 1          
+007A   1283           00437                 bcf             STATUS,RP0              ;select bank 0  
+                      00438                 
+                      00439 ;Timer0 aufsetzen
+                      00440 ;beim ersten Aufsetzen des Timers ist es Wurst, wie lange er läuft, wenn nur das Programm bis dahin abge
+                            arbeitet ist.
+                      00441 ;Denn erst nach dem Interrupt wird das erste (Stopbit) auf die Leitung gestellt und da dann immer dersel
+                            be Programmteil läuft,
+                      00442 ;müßte das Timing konstant bleiben
+007B   30B0           00443                 movlw   Sample_Time             ;setup Timer; runs 24.4 us (?) till interrupt
+007C   0081           00444                 movwf   TMR0                    ;bank 0 
+007D   30A0           00445                 movlw   0xA0                    ;enable GIE + T0IE
+007E   008B           00446                 movwf   INTCON                  ;Bank 0,1
+007F   0008           00447                 return
+                      00448 
+                      00449 ;====================================================================================================== 
+                                    
+0080                  00450 Setup_Registers_for_Receive             
+                      00451 
+                      00452 ;don't allow Interrupts for Timer0 at this time
+0080   018C           00453                 clrf    PIR1                    ;clear peripheral InterruptFlags Bank 0 ; nur sicherheit
+                            shalber
+                      00454                 
+0081   1683           00455                 bsf             STATUS,RP0              ;select bank 1                                  
+                                                            
+0082   1505           00456                 bsf             TRISIO,2                ;make GP2 an input                              
+                                                            Bank 1                          
+0083   1516           00457                 bsf             IOC,IOC2                ;enable GPIO2 for Interrupt on Change           
+                                    Bank 1          
+0084   1283           00458                 bcf             STATUS,RP0              ;select bank 0          
+                      00459 
+0085   0008           00460                 return
+                      00461 
+                      00462 ;====================================================================================================== 
+                                    
+                      00463 ;-------Read 10 (9) x 8Bit Binding Bytes----------------------------------------------------------------
+                            ----
+0086                  00464 Receive_Bind_Info
+                      00465 
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE 11
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0086   2???           00466                 call    Wait200m                        ;allow Receiver to power on
+                      00467 
+                      00468 ;we receive one byte of FF that does belong to nothing, so put it into Temp and the next byte addressed 
+                            is Byte1                                
+0087   30??           00469                 movlw   Temp                    ;Adresse für scrap byte before Byte1
+0088   0084           00470                 movwf   FSR                             ;                                               
+                                                    Bank 0,1
+                      00471 ;caused by the byte above, we have to set the bytecount one higher              
+0089   300B           00472                 movlw   .11                             
+008A   00??           00473                 movwf   Byte_Count
+                      00474                 
+008B                  00475 Cont_Bind_Info
+                      00476                 ;clear possible IR flags and enable GIE and GPIE 
+                      00477                 ;so it will wait for or continue with the next level change
+008B   018B           00478                 clrf    INTCON
+008C   3088           00479                 movlw   0x88                    ;allow level change interrupt only at this time
+008D   008B           00480                 movwf   INTCON                  ;Bank 0,1
+008E   300A           00481                 movlw   .10                             ;setup Bitcount. 9 passes, because the first pas
+                            s is for the start bit
+008F   00??           00482                 movwf   Bit_Count
+                      00483 
+                      00484 ;---------------------------------              
+                      00485 ;count the bits for one byte
+0090                  00486 Wait_For_Event1
+0090   1C80           00487                 btfss   BitFound                ;wait until the first level change IR or a timer0 Overru
+                            n IR occurres
+0091   2???           00488                 goto    Wait_For_Event1
+0092   1080           00489                 bcf             BitFound                ;clear the found bit
+0093   0B??           00490                 decfsz  Bit_Count,F             ;count down, how many bits we have already
+0094   2???           00491                 goto    Wait_For_Event1                 ;not yet enough
+                      00492 ;---------------------------------              
+                      00493 ;now we have read in a full byte of 8 data and one stop bit
+                      00494 
+                      00495 ;clear all IF and disable IR
+0095   018B           00496                 clrf    INTCON                  ;Bank 0,1
+                      00497                 ;store the received byte
+0096   08??           00498                 movf    ShiftData,W             ;ins W-Reg einlesen
+0097   0080           00499                 movwf   INDF                    ;nach 28 ff speichern                                   
+                            Bank 0,1
+0098   0A84           00500                 incf    FSR,F                   ;                                                       
+                                                    Bank 0,1
+                      00501                 ;The delay between the bytes is 610 usec
+                      00502 
+0099   0B??           00503                 decfsz  Byte_Count,F            ;all Bytes received?
+009A   2???           00504                 goto    Cont_Bind_Info  ;no 
+                      00505 ;alle 10 (9) Bytes have been read and are saved to Byte1 - Byte10       
+                      00506                 
+                      00507                 ;all Interrupts disabled
+009B   018B           00508                 clrf    INTCON                  ;Bank 0,1
+                      00509                         
+009C   1683           00510                 bsf             STATUS,RP0              ;select bank 1          
+009D   3008           00511                 movlw   0x08                            
+009E   0081           00512                 movwf   OPTION_REG              ;Kein Prescaler für Timer0, internal Clock, GPIO pullups
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE 12
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                             enabled                        Bank 1          
+009F   1283           00513                 bcf             STATUS,RP0              ;select bank 1  
+                      00514                                 
+00A0   0008           00515                 return          
+                      00516 
+                      00517 ;-----------------------------------------------------------------------------          
+                      00518 ;==============================================================================
+                      00519 ;store 10 (9) byte bind Daten to  EEProm 
+00A1                  00520 Schreiben
+00A1   300A           00521                 movlw   .10                                     ;setup Bytecount
+00A2   00??           00522                 movwf   Byte_Count                      ;nach Byte_Count speichern
+00A3   138B           00523                 bcf             INTCON,7                        ;Interrupts ausschalten GIE             
+                                            Bank 0,1 
+                      00524                 
+00A4   30??           00525                 movlw   Byte1                           ;Data-adress for Byte1, where Data come from
+00A5   0084           00526                 movwf   FSR                                     ;                                       
+                                                            Bank 0,1
+00A6   3030           00527                 movlw   0x30                                    ;
+00A7   00??           00528                 movwf   To_Adrs                         ;Adresse of EEProm, to where data is going      
+                                    
+                      00529 
+00A8                  00530 Again           
+00A8   2???           00531                 call    EEProm_Write
+00A9   0A84           00532                 incf    FSR,F                           ;                                               
+                                                    Bank 0,1
+00AA   0A??           00533                 incf    To_Adrs,F
+00AB   0B??           00534                 decfsz  Byte_Count,F            ;all Bytes written?
+00AC   2???           00535                 goto    Again                           ;No, next Byte
+00AD   0008           00536                 return
+                      00537                                 
+                      00538 ;======================================================================
+                      00539 
+                      00540 
+00AE                  00541 Send_Bind_Info          ;send binding information 9 x 8bit bytes
+                      00542 ;at least 9 Byte have to be sent, 10 Bytes don't hurt
+00AE   1500           00543                 bsf             Send_Bind                               ;Send Bind Information to receiv
+                            er
+                      00544                 ;copy first byte into Shift_Data
+00AF   1580           00545                 bsf             Send                    ;set transmit mode for the interrupt routine
+00B0   1600           00546                 bsf             StartBit                ;to send the initial startbit
+00B1   300A           00547                 movlw   .10
+00B2   00??           00548                 movwf   Byte_Count
+00B3   30??           00549                 movlw   Byte1
+00B4   0084           00550                 movwf   FSR                                     ;gets Adress of Byte1                   
+                            Bank 0,1
+                      00551 
+00B5                  00552 Next_Byte               
+                      00553         ;when we send binding information we send 15 15 bits. 1 startbit, 8 databits, 1 stopbit and 5 ad
+                            ditional stopbits
+                      00554         ;the W register contains the byte to be sent.
+                      00555         ;Inthe interrupt routine, before shifting the W-register we set the carry bit on.
+                      00556         ;We shift the bits right -> through carry every sample time pushing the lowest bit into the carr
+                            y position
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE 13
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00557         ;and the old carry (a 1 bit) as bit 7. By this, we fill up the byte with 1's that we use afterwa
+                            rds as stop bits
+                      00558         ;(stop bits are 1's) The carry bit then is set onto the dataline
+                      00559 
+00B5   300F           00560                 movlw   .15                                     ;Bitcount mit Start und mehreren Stop bi
+                            ts
+00B6   00??           00561                 movwf   Bit_Count
+00B7   0800           00562                 movf    INDF,W                          ;Daten von Byte1 in W                           
+                                            Bank 0,1
+                      00563                 
+                      00564 ;------------------------------------
+                      00565 ;Send will be switched off, when the Interrupt routine has put a bit onto the line
+00B8                  00566 Wait_Send                                                       ;Wait for Send to be switched off from I
+                            R Routine
+00B8   1980           00567                 btfsc   Send
+00B9   2???           00568                 goto    Wait_Send
+                      00569 ;------------------------------------
+                      00570 
+00BA   1580           00571                 bsf             Send                            ;swith it on for the next bit to be sent
+00BB   0B??           00572                 decfsz  Bit_Count,F                     ;all bits done?
+00BC   2???           00573                 goto    Wait_Send                                       ;No, do next bit
+                      00574                 
+00BD   0A84           00575                 incf    FSR,F                           ;                                               
+                                                            Bank 0,1
+00BE   1600           00576                 bsf             StartBit
+00BF   0B??           00577                 decfsz  Byte_Count,F                    ;all bytes done?
+                      00578                 
+00C0   2???           00579                 goto    Next_Byte                       ;no, do next byte
+00C1   1100           00580                 bcf             Send_Bind               
+00C2   0008           00581                 return
+                      00582                 
+                      00583 ;============================================================================
+                      00584 ;-------------------------------------------------------------------------              
+                      00585 
+00C3                  00586 Receive_Channel_Data            ;receive 9 x 16bit bytes  1S, 16D, 1S
+                      00587                 ;clear possible IR Flags
+00C3   3088           00588                 movlw   0x88                    ;don't allow timer0 imterrupts at this time
+00C4   008B           00589                 movwf   INTCON                          ;Bank 0,1
+                      00590                 
+                      00591                 
+00C5   30??           00592                 movlw   Byte1                   ;Adress of Byte1
+00C6   0084           00593                 movwf   FSR                             ;                                               
+                                                    Bank 0,1
+00C7   3012           00594                 movlw   .18                             ;fill up 18 Bytes
+00C8   00??           00595                 movwf   Byte_Count
+                      00596 
+00C9                  00597 Cont_Channel_Data
+00C9   3012           00598                 movlw   .18                             ;setup Bitcount 1 Startbit, 16 Databits, 1 Stopb
+                            it
+00CA   00??           00599                 movwf   Bit_Count
+                      00600 
+                      00601 ;setup Timer1 for signal loss checking for 25 msec timeout
+                      00602 ;when T1 times out, we did not receive channel data in time. 
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE 14
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00603 ;Leave receive and gate out timing pulses according to last stored channeldata or use fail_safe position
+                            s.
+                      00604 ;a timer value of 9E58 will give 25 msec runtime till overflow
+00CB   309E           00605                 movlw   0x9E
+00CC   008F           00606                 movwf   TMR1H                   ;                                                       
+                                                    Bank0
+00CD   3058           00607                 movlw   0x58                    
+00CE   008E           00608                 movwf   TMR1L                   ;                                                       
+                                                    Bank0
+00CF   018C           00609                 clrf    PIR1                                                                            
+                            ;Bank 0
+00D0   3021           00610                 movlw   0x21
+00D1   0090           00611                 movwf   T1CON           ;switch Timer1 on with prescaler 4 : 1          ;Bank 0
+00D2   1400           00612                 bsf             Signal_Lost
+                      00613                 
+                      00614 ;---------------------------------              
+                      00615 ;count the bits for one word
+00D3                  00616 Wait_For_Event2
+                      00617                                                 ;insert remaining stuff to be done like signal loss chec
+                            king, failsafe and others
+                      00618                 ;Check_for Signal_Loss                                          
+00D3   180C           00619                 btfsc   PIR1,0                                                                          
+                                    ;Bank 0
+00D4   2???           00620                 goto    Signal_Loss             ;exit loop waiting for data
+                      00621 
+00D5   1C80           00622                 btfss   BitFound                ;wait until the first level change IR or a timer0 Overru
+                            n IR occurres
+00D6   2???           00623                 goto    Wait_For_Event2
+                      00624 ;---------------------
+                      00625 ;when the bitcounter has been decremented from 18 to 10 we have received the first complete byte into sh
+                            iftdata
+00D7   300A           00626                 movlw   .10
+00D8   02??           00627                 subwf   Bit_Count,W             ;test bitcount = 10
+00D9   1903           00628                 btfsc   STATUS,Z
+00DA   2???           00629                 call    Save_Byte               ;bitcount is 10, we have read the first byte
+                      00630                 
+00DB   1080           00631                 bcf             BitFound                ;das found bit löschen  
+                      00632 ;when the bitcounter goes to 0, the second databyte is available in shiftdata
+00DC   0B??           00633                 decfsz  Bit_Count,F             ;do we have one full word (1+16+1 Bit)?
+00DD   2???           00634                 goto    Wait_For_Event2         ;not yet
+                      00635 ;--------------------           
+00DE   2???           00636                 call    Save_Byte
+                      00637                 ;after every second byte (one full word) we must take a short break
+00DF   2???           00638                 call    Wait_Between
+                      00639                                 
+00E0   08??           00640                 movf    Byte_Count,F    ;test bytecount for zero
+00E1   1D03           00641                 btfss   STATUS,Z                ;Is Byte_Count=0 ?
+00E2   2???           00642                 goto    Cont_Channel_Data       ;no, go on read next word
+                      00643 ;---------------------------------              
+00E3   018B           00644                 clrf    INTCON                  ;clear interrupts                                       
+                                                            Bank 0,1                
+00E4   0190           00645                 clrf    T1CON                   ;Stop T1                                                
+                                                                    ;Bank 0
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE 15
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+00E5   018C           00646                 clrf    PIR1
+00E6   1000           00647                 bcf             Signal_Lost             ;means Signal ok
+00E7   1100           00648                 bcf             Restored                ;in case of a new signal loss, we will have to r
+                            estore failsafe data again
+                      00649                         
+00E8   1D85           00650                 btfss   BindLine                ;high= no plug jumpered, don't save channeldata as fail 
+                            safe
+00E9   2???           00651                 call    Copy_CH2_EEProm ;save actual channel data as default settings
+                      00652                 
+00EA   0008           00653                 return
+                      00654 ;----------------------
+00EB                  00655 Signal_Loss
+                      00656                 ;Timer1 overflow interrupt occurred
+00EB   1400           00657                 bsf             Signal_Lost             ;this terminates the receive loop
+00EC   0190           00658                 clrf    T1CON                   ;switch off timer1                                      
+                                                            ;Bank 0
+00ED   100C           00659                 bcf             PIR1,0                  ;reset Timer interrupt flag                     
+                                                            ;Bank 0
+00EE   0008           00660                 return                  
+                      00661                 
+                      00662 ;==========================================================================
+00EF                  00663 Save_Byte       
+                      00664 ;we have a byte, so let's save it               
+00EF   08??           00665                 movf    ShiftData,W             ;read to w-reg
+00F0   0080           00666                 movwf   INDF                    ;store to 28 ff                                         
+                                            Bank 0,1
+00F1   0A84           00667                 incf    FSR,F                   ;                                                       
+                                                            Bank 0,1
+00F2   03??           00668                 decf    Byte_Count,F
+00F3   0008           00669                 return          
+                      00670 ;=============================================================================
+00F4                  00671 Wait_Between
+00F4   3088           00672                 movlw   0x88                    ;GIE + GPIE
+00F5   008B           00673                 movwf   INTCON                  ;                                                       
+                            Bank 0,1
+00F6   0008           00674                 return
+                      00675         
+                      00676                         
+                      00677 ;===========================================================================================-           
+                      00678                 
+00F7                  00679 Output_Channel_Data                     ;create Channel Pulse for Servo 
+                      00680 ;check, if we have to handle fail safe
+                      00681 ;proove checksum
+                      00682 ;copy channel data to the save area
+                      00683 ;setup timer1
+                      00684 ;switch on the correct output port
+                      00685 ;wait for timer overrun
+                      00686 ;do the next channel
+                      00687 
+00F7   018B           00688                 clrf    INTCON                  ;Interrupts komplett löschen                    ;Bank 0,
+                            1
+                      00689 
+                      00690 ;used for debugging
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE 16
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00691 ;copy channel data to EEProm, where they can be read out on the programmer              
+                      00692 ;               decf    My_Temp,F
+                      00693 ;               btfsc   STATUS,Z
+                      00694 ;               goto    Copy_CH2_EEProm 
+                      00695 
+00F8   1C00           00696                 btfss   Signal_Lost                     ;skip if signal lost
+00F9   2???           00697                 goto    Ck_Sum                          ;signal ok
+                      00698 ;with signal lost we at first use the last valid data as channel data
+                      00699 ;if we have multiple contigous signal losses, we switch to fail safe data, that is we copy fail
+                      00700 ;safe data from EEPROM to channel data working registers Copy_Byte 1 - 16
+                      00701 
+                      00702 ;check if signal lost count is already 0
+00FA   08??           00703                 movf    SL_Counter,F            ;set condition code
+00FB   1D03           00704                 btfss   STATUS,Z                ;check Zero status. Skip decrement, if already 0
+                      00705                                                                 ;fail save data have already been copied
+                             
+00FC   2???           00706                 goto    Not_Zero        
+                      00707                 
+                      00708 ;signal lost several times, use fail_safe data
+                      00709 ;Check for the type of Fail-Safe action regarding the PPM stream
+                      00710                         
+                      00711         if      PPM_Fail_Safe           ;PPM_Fail_Safe=1 so continue with the normal code
+                      00712         else
+                      00713                 return                                          ;PPM_Fail_Safe=0 exit the routine and do
+                             not create a PPM stream
+                      00714         endif   
+                      00715                                                                         
+00FD   2???           00716                 goto    Use_As_Is
+                      00717                                                                                                         
+                                                    
+00FE                  00718 Not_Zero                                                                
+                      00719 ;signal lost, check if we already have to use fail safe data
+00FE   0B??           00720                 decfsz  SL_Counter,F
+00FF   2???           00721                 goto    Use_As_Is
+                      00722 
+                      00723 ;----------------------------           
+                      00724 ;signal lost several times, use fail_safe data
+                      00725 ;for one continuous signal lost condition, copy data only once  
+                      00726 ;did we already restore fail_safe data?
+0100   1900           00727                 btfsc   Restored                                ;we not yet have copied the fail safe da
+                            ta      
+0101   2???           00728                 goto    Use_As_Is
+0102   2???           00729                 call    Fail_Safe_Lesen         ;read fail safe data and copy into Copy_Byte1 - Copy_Byt
+                            e16     
+0103   1500           00730                 bsf             Restored
+0104   2???           00731                 goto    Use_As_Is
+                      00732 ;-----------------------------          
+0105                  00733 Ck_Sum          
+0105   2???           00734                 call    CheckSum
+0106   1B80           00735                 btfsc   Checksum_Ok                     ;if checksum is invalid, we skip copying of the 
+                            channel data and use old data
+0107   2???           00736                 call    Copy_Ch_Data            ;Data is correct, so use it
+                      00737                 ;Data are now available in Cpy_Byte1  -  Cpy_Byte16
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE 17
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00738                 
+                      00739 ;with maximum length of 6 channels and channel 7 und 8 at neutral, there will be about 1 msec of time le
+                            ft, before the next 
+                      00740 ;datapacket arrives.            
+                      00741 
+                      00742 ;the 16 bit channel data of one channel represents the time of the channel pulse in usec.
+                      00743 ;as the PIC runs with 16 Mhz crystal, that means 4 Mhz instructions. Timer1 running with a prescaler of 
+                            4 will step one step
+                      00744 ;every 1 usec 
+                      00745 ;The timer is an imcrementing counter. If we want it to run 1000 steps (=1msec) we must set it up to 655
+                            36-1000=64536
+                      00746 ;That's the reason for subtracting timer1 low and high from 0. When we subtract the low part, we get a b
+                            orrow (Carry) and that
+                      00747 ;means, that we have to subtract that carry from the high part.
+0108                  00748 Use_As_Is
+                      00749         ;setup number of channels               
+0108   3008           00750                 movlw   Number_of_Channels
+0109   00??           00751                 movwf   Byte_Count                      ;Number of channels to support (max 8)
+                      00752                 
+                      00753         ;load FSR with address of first channel low byte
+010A   30??           00754                 movlw   Copy_Byte1                      ;low byte channel1
+010B   0084           00755                 movwf   FSR
+                      00756 ;----------------------------------             
+010C                  00757 Next_Channel
+                      00758 ;+++++++++++++++++++++++++++++++++++++++++++ 
+                      00759 ;âûâîäèì PWM êàíàëà ãàçà íà âûâîä Channel1
+                      00760 ;+++++++++++++++++++++++++++++++++++++++++++ 
+010C   08??           00761         MOVF      Byte_Count,W   ; êîïèðîâàòü èç Byte_Count â W
+010D   1103           00762         BCF       STATUS,Z ; îïóñòèì ôëàã Z â íîëü
+010E   3A06           00763         XORLW     .6     ; ïðîâîäèì ñðàâíåíèå ñ ÷èñëîì 6 (8 ýòî êàíàë 1, 7 - êàíàë 2 è ò.ï.)
+010F   1903           00764         BTFSC     STATUS,Z ; äåëàåì áèò-ïðîâåðêó Z-ôëàãà
+                      00765 ; åñëè Z=1, òî âûïîëíÿåòñÿ ñëåäóþùàÿ èíñòðóêöèÿ, èíà÷å – ïðîïóñêàåòñÿ
+0110   2???           00766         goto AreEqual        
+0111   2???           00767                 goto not3chan
+0112                  00768 AreEqual
+0112   1405           00769         bsf Channel3  ;ïîäíèìàåì âûâîä Channel3 ââåðõ 
+0113                  00770 not3chan  ; åñëè íå êàíàë ãàçà
+                      00771 ;+++++++++++++++++++++++++++++++++++++++++++ 
+                      00772 
+0113   2???           00773                 call    Timer1_Sync                             ;channel sync pulse creates 300 usec neg
+                            ative pulse  ---|___|-----
+0114   2???           00774                 call    Timer1_Channel_Pulse    ;calculates and sets the timer1 start value
+0115   0B??           00775                 decfsz  Byte_Count,F            ;skip if all channels done?
+0116   2???           00776                 goto    Next_Channel
+                      00777 ;-------------------------------
+0117   2???           00778                 call    Timer1_Sync                     ;terminates the last channel pulse
+                      00779                 if Positive
+                      00780                         bsf             PPM_Out                 ;make output pin high          ____|----
+                            ----------------------          
+                      00781                 else
+0118   1085           00782                         bcf             PPM_Out                 ;make output pin low           ----|____
+                            _______________________
+                      00783                 endif
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE 18
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00784         ;all channels done
+0119   1000           00785                 bcf             Signal_Lost             ;this terminates the receive loop
+011A   1505           00786                 bsf             DataLine
+011B   0008           00787                 return
+                      00788 
+                      00789 ;==========================================================
+011C                  00790 Timer1_Sync
+                      00791                 ;switche output low and return after 290 usec. It takes about 10 cycles to start the cha
+                            nnel pulse. 
+                      00792                 ;This time adds to the sync pulse
+                      00793                 ;to create a timer with 290 usec, we have to subtract 290 from 0000 -> = FEDE because co
+                            unter is incrementing to 0000
+011C   30DE           00794                 movlw   0xDE
+011D   008E           00795                 movwf   TMR1L
+011E   30FE           00796                 movlw   0xFE
+011F   008F           00797                 movwf   TMR1H
+                      00798 
+0120   3021           00799                 movlw   0x21
+0121   0090           00800                 movwf   T1CON                   ;start Timer1 with prescaler 4 : 1                      
+                            ;Bank 0
+                      00801                 
+                      00802                 if Positive
+                      00803                         bcf             PPM_Out                                 ;make output low        
+                                    
+                      00804                 else
+0122   1485           00805                         bsf             PPM_Out
+                      00806                 endif
+                      00807                 
+                      00808                 ;we have 300 usec time, time enough to calculate the timing for the channel pulse
+0123   2???           00809                 call    Prepare_Channel_Time            
+                      00810 ;--------               
+0124                  00811 Wait_Ch_L
+0124   1C0C           00812                 btfss   PIR1,0          ;wait until t1 has timed out                            ;Bank 0
+0125   2???           00813                 goto    Wait_Ch_L
+                      00814 ;--------
+0126   0190           00815                 clrf    T1CON                                                                           
+                                    ;Bank 0
+0127   100C           00816                 bcf             PIR1,0          ;reset IR Flag                                          
+                            ;Bank 0 
+0128   0008           00817                 return
+                      00818 
+                      00819                         
+                      00820 ;===========================================================
+                      00821 
+0129                  00822 Prepare_Channel_Time
+0129   01??           00823                 clrf    Temp
+012A   0800           00824                 movfw   INDF                            ;load low byte of a channel
+012B   02??           00825                 subwf   Temp,W                          ;subtract from 0 (Temp)
+012C   00??           00826                 movwf   CP_Low                          ;set timer low byte                             
+                                    ;Bank 0
+                      00827                 
+012D   0A84           00828                 incf    FSR,F                           ;step to next byte adress
+012E   0800           00829                 movfw   INDF                            ;load high byte of a channel
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE 19
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+012F   0A84           00830                 incf    FSR,F                           ;step to next byte adress
+0130   02??           00831                 subwf   Temp,W                          ;subtract from 0
+0131   00??           00832                 movwf   CP_High                         ;set timer high byte                            
+                            ;Bank 0
+                      00833                 
+                      00834                 ;we must decrement timer1H for the Carry, when timer1L is not zero
+0132   08??           00835                 movf    CP_Low,F                        ;Check Timer1Lo for zero status
+0133   1D03           00836                 btfss   STATUS,Z                        ;Skip if Zero, must not decrement Timer1Hi      
+                                    
+0134   03??           00837                 decf    CP_High,F                       ;decr timer high, that is for the carry of the l
+                            ow byte         ;Bank 0
+                      00838 
+                      00839                 ;now we have the timer setup for the full channel timing
+                      00840                 ;as we have splitted off the sync pulse we must adjust the channel pulse duration
+                      00841                 ;as the timer is incrementing up to 0000 time is shortened by increasing the starting va
+                            lue
+                      00842                 ;this means, add the sync pulse timing to the timer value 
+                      00843                 ;the sync pulse is 300 usec so we have to add 300 = 0x0118 to the timer to shorten its r
+                            unning time.
+                      00844 
+0135   3018           00845                 movlw   0x18                            ;add low order byte of 0x0118
+0136   07??           00846                 addwf   CP_Low,F                                
+0137   1803           00847                 btfsc   STATUS,C                        ;Skip if no Carry
+0138   0A??           00848                 incf    CP_High,F                       ;Had a Carry, so add it
+0139   0A??           00849                 incf    CP_High,F                       ;add 0x01 as the high order byte of 0x0118
+                      00850                 ;CP_high and CP_Low contain the adjusted timer value
+013A   0008           00851                 return          
+                      00852 ;----------------------------------------               
+013B                  00853 Timer1_Channel_Pulse
+                      00854                 ;move the prepared timing values into the timer registers and start the timer
+013B   08??           00855                 movfw   CP_Low
+013C   008E           00856                 movwf   TMR1L
+013D   08??           00857                 movfw   CP_High
+013E   008F           00858                 movwf   TMR1H
+013F   3021           00859                 movlw   0x21
+0140   0090           00860                 movwf   T1CON                   ;start Timer1 with prescaler 4 : 1                      
+                            ;Bank 0
+                      00861                 if Positive
+                      00862                         bsf             PPM_Out                 ;make output pin high          ____|----
+                            ----------------------
+                      00863                 else
+0141   1085           00864                         bcf             PPM_Out                 ;make output pin low           ----|____
+                            ______________________
+                      00865                 endif
+                      00866 ;--------               
+0142                  00867 Wait_Ch_H
+0142   1C0C           00868                 btfss   PIR1,0                  ;wait until t1 has timed out                            
+                            ;Bank 0
+0143   2???           00869                 goto    Wait_Ch_H
+                      00870 ;--------
+0144   1005           00871                 bcf     Channel3 ;;;; îòïóñêàì âûâîä Channel3 
+                      00872         ;reset pending Interrupts
+0145   0190           00873                 clrf    T1CON                                                                           
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE 20
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                                    ;Bank 0
+0146   100C           00874                 bcf             PIR1,0          ;reset IR Flag                                          
+                            ;Bank 0 
+0147   0008           00875                 return
+                      00876 
+                      00877 ;=============================================================================================
+                      00878 ;=============================================================================================
+0148                  00879 Copy_CH2_EEProm
+                      00880 ;               btfsc   FS_Done
+                      00881 ;               return
+0148   138B           00882                 bcf             INTCON,7                        ;disable all Interrupts GIE             
+                                            Bank 0,1                
+0149   3012           00883                 movlw   .18                                     ;setup Bytecount including checksum
+014A   00??           00884                 movwf   Byte_Count                      ;save to Byte_Count
+014B   30??           00885                 movlw   Copy_Byte1                      ;Data-Address of Byte1, where data comes from
+014C   0084           00886                 movwf   FSR                                     ;                                       
+                                                            Bank 0,1
+014D   3040           00887                 movlw   0x40                            ;Startaddress of EEprom where FS data are to be 
+                            stored
+014E   00??           00888                 movwf   To_Adrs                         ;               
+                      00889 ;---------------------
+014F                  00890 EE_Again                
+014F   2???           00891                 call    EEProm_Write
+0150   0A84           00892                 incf    FSR,F                           ;                                               
+                                                    Bank 0,1
+0151   0A??           00893                 incf    To_Adrs,F
+0152   0B??           00894                 decfsz  Byte_Count,F            ;all bytes written?
+0153   2???           00895                 goto    EE_Again                                ;no, do next byte
+                      00896 ;---------------------          
+0154   1480           00897                 bsf             FS_Done
+0155   0008           00898                 return
+                      00899         
+                      00900 ;=============================================================================================
+0156                  00901 CheckSum
+                      00902 ;the first 8 words have to be added as 16bit words. The next 16bit word is the checksum
+                      00903 ;Data is received with low 8bit byte first, then high 8bit byte
+                      00904 ;Datastream:           EE05 EA05 3D06 0306 D205 FB03 DC05 DC05 9D2D
+                      00905 ;numeric value:        05EE 05EA 063D 0603 05D2 03FB 05DC 05DC 2D9D
+                      00906 ;Checksumcalculation:  05EE + 05EA+ + 063D + 0603 + 05D2 + 03FB + 05DC + 05DC = 2D9D
+                      00907 ;Servo pulse length:   1518   1514    1597   1539   1490   1019   1500   1500  [usec]
+                      00908 
+                      00909 ;for the checksum, we must add 16bit words. We add up the low order bytes in W and collect the carry bit
+                            s in Cksum_High
+                      00910 ;we exit, if checksum low miscompares.
+                      00911 ;we take Cksum_High and add up the high order bytes and compare with checksum high
+                      00912 
+0156   1380           00913                 bcf             Checksum_Ok                     ;switch it off, will be switched on, if 
+                            checksum is ok
+0157   01??           00914                 clrf    Cksum_High
+0158   30??           00915                 movlw   Byte3                           ;Address of 2. lo Byte
+0159   0084           00916                 movwf   FSR                             ;                                               
+                                                    Bank 0,1
+015A   3007           00917                 movlw   .7                                      ;load one byte to w and then sum up 7 mo
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE 21
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                            re low bytes to compare with check sum low
+015B   00??           00918                 movwf   Byte_Count
+015C   08??           00919                 movf    Byte1,W                         ;Data of Byte1 to W 
+015D                  00920 Sum_Up_Lo               
+015D   0700           00921                 addwf   INDF,W                          ;add 7 low bates to W                           
+                                            Bank 0,1
+015E   1803           00922                 btfsc   STATUS,C                        ;increment cksum_high, whenever a carry occures
+015F   0A??           00923                 incf    Cksum_High,F            
+0160   0A84           00924                 incf    FSR,F                           ;increment FSR twice, to point to next lobyte
+0161   0A84           00925                 incf    FSR,F
+0162   0B??           00926                 decfsz  Byte_Count,F            ;all low bytes handled?         
+0163   2???           00927                 goto    Sum_Up_Lo                       ;no, do next byte
+                      00928 ;compare Checksum Low
+                      00929                 ;Checksum low is in W, FSR points to received checksum_low
+0164   0200           00930                 subwf   INDF,W                          ;subtract one from the other
+                      00931                                                                         ;If checksums low were equal, re
+                            sult is zero
+0165   1D03           00932                 btfss   STATUS,Z                        ;check status for zero                          
+                                                            
+0166   2???           00933                 goto    Fail                            ;Result not zero, checksums did not compare
+                      00934 ;----------------------         
+0167   3008           00935                 movlw   .8                                      ;we have to sum up checksum_high with 8 
+                            bytes of channel data high. 
+0168   00??           00936                 movwf   Byte_Count
+0169   30??           00937                 movlw   Byte2                           ;Address of 1. hi Byte
+016A   0084           00938                 movwf   FSR                             ;                                               
+                                                    Bank 0,1
+016B   08??           00939                 movf    Cksum_High,W            ;the summed up carries from sum_up_lo
+016C                  00940 Sum_Up_Hi               
+016C   0700           00941                 addwf   INDF,W                          ;add Data high from Byte2 - 16 to W             
+                                                            Bank 0,1
+016D   0A84           00942                 incf    FSR,F                           ;increment FSR twice, to point to next hibyte
+016E   0A84           00943                 incf    FSR,F
+016F   0B??           00944                 decfsz  Byte_Count,F            ;all high bytes handled?                        
+0170   2???           00945                 goto    Sum_Up_Hi                       ;no, do next byte
+                      00946 ;compare Checksum High
+                      00947                 ;W holds Checksum low, FSR points to Checksum-high
+0171   0200           00948                 subwf   INDF,W                          ;subtract one from the other
+                      00949                                                                         ;If checksums high were equal, r
+                            esult is zero
+0172   1D03           00950                 btfss   STATUS,Z                        ;check status for zero                          
+                                                                    
+0173   2???           00951                 goto    Fail                            ;Result not zero, checksums did not compare
+                      00952 
+                      00953 ;Checksum ok,we can allow to copy the channel data so we have them on hand,in case of an interrupted tra
+                            nsmission
+                      00954 ;nevertheless, the receiver itself continues to send data for about 2 seconds, if the transmission fails
+0174   1780           00955                 bsf             Checksum_Ok     
+                      00956 
+                      00957 ;in case of valid received channel data, we set the residual_signal_lost counter to it's max value
+0175   3003           00958                 movlw   Max_Signal_Lost 
+0176   00??           00959                 movwf   SL_Counter
+                      00960                         
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE 22
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00961 ;               bcf             LED                                     ;for debug only
+0177   0008           00962                 return
+                      00963         
+0178                  00964 Fail    
+                      00965 ;               bsf             LED                                     ;for debug only
+0178   08??           00966                 movf    SL_Counter,F    ;set condition code
+0179   1D03           00967                 btfss   STATUS,Z        ;decrement til Zero
+017A   03??           00968                 decf    SL_Counter,F
+                      00969 
+017B   0008           00970                 return          
+                      00971                 
+                      00972                 
+                      00973 ;=============================================================================          
+                      00974 ;copy the actual channel data from Byte1 - Byte16 to Copy_Byte1 ff 
+017C                  00975 Copy_Ch_Data
+                      00976         ;if bind jumper is plugged, save data as fail safe data to EEPROM. Data is Checksum checked
+017C   1D85           00977                 btfss   BindLine                ;High=no plug jumpered, don't save channel data as fail 
+                            safe
+017D   2???           00978                 call    Copy_CH2_EEProm         ;save actual channel data as fail safe settings
+                      00979 
+                      00980 
+017E   3010           00981                 movlw   .16
+017F   00??           00982                 movwf   Byte_Count
+                      00983                 
+0180   30??           00984                 movlw   Copy_Byte1
+0181   00??           00985                 movwf   To_Adrs
+                      00986                 
+0182   30??           00987                 movlw   Byte1
+0183   00??           00988                 movwf   From_Adrs               
+0184                  00989 Copy_Cont               
+0184   08??           00990                 movf    From_Adrs,W             ;source address into W
+0185   0084           00991                 movwf   FSR                             ;and to FSR
+0186   0800           00992                 movf    INDF,W                  ;address where to read data from
+0187   00??           00993                 movwf   Temp                    ;save data to Temp 
+                      00994                 
+0188   08??           00995                 movf    To_Adrs,W                       ;get target address
+0189   0084           00996                 movwf   FSR                             ;put to FSR 
+018A   08??           00997                 movf    Temp,W                  ;get data to be copied from Temp 
+018B   0080           00998                 movwf   INDF                    ;and move them to target 
+018C   0A??           00999                 incf    From_Adrs,F             ;increment source address
+018D   0A??           01000                 incf    To_Adrs,F               ;increment target address
+018E   0B??           01001                 decfsz  Byte_Count,F    ;decrement bytecounter
+018F   2???           01002                 goto    Copy_Cont               ;move the next byte
+0190   0008           01003                 return
+                      01004                 
+                      01005 ;=============================================================================                          
+0191                  01006 EEProm_Write
+                      01007 ;source address already in FSR, target address in To_Adrs
+0191   08??           01008                 movf    To_Adrs,W                       ;use target address
+0192   1683           01009                 bsf             STATUS,RP0                      ;select Bank 1                          
+                                    Bank 0,1
+0193   009B           01010                 movwf   EEADR                           ;load it                                        
+                                    Bank 1
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE 23
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      01011                 
+0194   0800           01012                 movf    INDF,W                          ;get data from source into W            Bank 0,1
+                                            
+0195   009A           01013                 movwf   EEDATA                          ;move to EEDATA                 Bank 1
+0196   151C           01014                 bsf             EECON1,WREN                     ;Enable writing                 Bank 1
+0197   3055           01015                 movlw   55h
+0198   009D           01016                 movwf   EECON2                          ;                                               
+                            Bank 1
+0199   30AA           01017                 movlw   0xAA                            
+019A   009D           01018                 movwf   EECON2                          ;                                               
+                            Bank 1
+019B   149C           01019                 bsf             EECON1,WR                       ;start writing                  Bank 1
+019C   1283           01020                 bcf             STATUS,RP0                      ;select bank 0                          
+                                    Bank 0,1
+                      01021 ;------------------             
+019D                  01022 EE_Wait                                                         ;Wait for EEProm Write to finish        
+                                    
+019D   1F8C           01023                 btfss   PIR1,EEIF                       ;wrinting has finished, when the flag has been s
+                            et              Bank 0
+019E   2???           01024                 goto    EE_Wait                         ;not yet finished
+                      01025 ;------------------                             
+019F   138C           01026                 bcf             PIR1,EEIF                       ;clear interrupt flag                   
+                                                                                    Bank 0
+01A0   0008           01027                 return                          
+                      01028 ;===============================================================================
+                      01029 ;Read Fail_Safe data from EEProm and copy to Copy_Byte1 ff 
+01A1                  01030 Fail_Safe_Lesen
+01A1   3010           01031                 movlw   .16                                     ;setup Bytecount
+01A2   00??           01032                 movwf   Byte_Count                      ;move to Byte_Count
+01A3   3040           01033                 movlw   0x40                            ;setup source address
+01A4   00??           01034                 movwf   From_Adrs                               ;                                       
+                                                            Bank 0,1
+01A5   30??           01035                 movlw   Copy_Byte1                              ;seetup target address
+01A6   2???           01036                 call    Lesen
+01A7   0008           01037                 return
+                      01038 ;================================================================================
+                      01039 ;read binding data from EEProm and copy to Byte1 - Byte10 
+01A8                  01040 Bind_Lesen
+01A8   300A           01041                 movlw   .10                                     ;setup Bytecount
+01A9   00??           01042                 movwf   Byte_Count                      ;move to Byte_Count
+01AA   3030           01043                 movlw   0x30                            ;.34                            ;source address 
+                            from EEprom
+01AB   00??           01044                 movwf   From_Adrs                               ;                                       
+                                                            Bank 0,1
+01AC   30??           01045                 movlw   Byte1                           ;target address for Byte1
+01AD   2???           01046                 call    Lesen
+01AE   0008           01047                 return
+                      01048 ;=================================================================================
+                      01049 
+01AF                  01050 Lesen
+                      01051 
+01AF   0084           01052                 movwf   FSR                                     ;target address to FSR                  
+                                    Bank 0,1
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE 24
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      01053 
+01B0                  01054 L_Again         
+                      01055                 
+01B0   2???           01056                 call    EEProm_Read                     ;read a byte from EEProm
+01B1   0A??           01057                 incf    From_Adrs,F
+01B2   0A84           01058                 incf    FSR,F                           ;                                               
+                                                    Bank 0,1
+01B3   0B??           01059                 decfsz  Byte_Count,F            ;all bytes done?          
+01B4   2???           01060                 goto    L_Again                         ;no, do next byte
+01B5   0008           01061                 return
+                      01062 
+                      01063 ;=================================================================================
+01B6                  01064 EEProm_Read
+01B6   08??           01065                 movf    From_Adrs,W                     ;get source adresse
+01B7   1683           01066                 bsf             STATUS,RP0                      ;select Bank 1                          
+                                            Bank 0,1
+01B8   009B           01067                 movwf   EEADR                           ;holds Adress to be read                        
+                            Bank 1
+01B9   141C           01068                 bsf             EECON1,RD                       ;Start EE Read                          
+                                            Bank 1
+01BA   081A           01069                 movf    EEDATA,W                        ;                                               
+                                                    Bank 1
+01BB   0080           01070                 movwf   INDF                            ;store to target adresse (Byte1 - Byte9)        
+                            Bank 0,1
+01BC   1283           01071                 bcf             STATUS,RP0                      ;select Bank 0                          
+                                            Bank 0,1
+01BD   0008           01072                 return
+                      01073 
+                      01074 
+                      01075 ;=================================================================================   
+                      01076        org 0x3ff
+                      01077 
+03FF   34FF           01078        retlw 0xFF
+                      01079 
+                      01080 ; initialize eeprom locations
+                      01081 
+                      01082 EE              CODE    0x2100
+2100   0052 0065 0069 01083                 DE      "Reinhard Strauch 2009; Decoder"
+       006E 0068 0061 
+       0072 0064 0020 
+       0053 0074 0072 
+       0061 0075 0063 
+       0068 0020 0032 
+       0030 0030 0039 
+       003B 0020 0044 
+       0065 0063 006F 
+       0064 0065 0072 
+211E   0032 0031 0050 01084                 DE      Prog_Level                              ;Programmversion
+       0050 004D 
+                      01085                 if Positive 
+                      01086                         DE "+"
+                      01087                 else
+2123   002D           01088                         DE "-"
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE 25
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      01089                 endif
+2124   0020           01090                 DE      " "
+                      01091                 
+                      01092                 if PPM_Fail_Safe
+2125   0046 0053 006F 01093                         DE "FSon"
+       006E 
+                      01094                 else
+                      01095                         DE "FSoff"
+                      01096                 endif
+                      01097 
+                      01098 ID              Code    0x2130          
+                      01099                 ;10 Bytes of Bind procedure from transmitter            
+                      01100                 ;DE 0xE1,0x5C,0,0,0x55,0x55,0x55,0x55,0x55,0xE6
+2130   00EE 0000 0000 01101                 DE 0xEE,0x00,0x00,0x00,0x55,0x55,0x55,0x55,0x55,0x97    ;dollop
+       0000 0055 0055 
+       0055 0055 0055 
+       0097 
+                      01102 
+                      01103                 ;Initial Fail Safe Setting - neutral - for all servo channels DC05 -> 05DC = 1500
+                      01104 FS              Code    0x2140  
+2140   00DC 0005 00DC 01105                 DE 0xDC,0x05,0xDC,0x05,0xAC,0x04,0xDC,0x05,0xDC,0x05,0xDC,0x05,0xDC,0x05,0xDC,0x05
+       0005 00AC 0004 
+       00DC 0005 00DC 
+       0005 00DC 0005 
+       00DC 0005 00DC 
+       0005 
+3FC2                  01106                 END                       ; directive 'end of program'
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE 26
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+ADCON0                            0000001F
+ADCS0                             00000004
+ADCS1                             00000005
+ADCS2                             00000006
+ADFM                              00000007
+ADIE                              00000006
+ADIF                              00000006
+ADON                              00000000
+ADRESH                            0000001E
+ADRESL                            0000009E
+ANS0                              00000000
+ANS1                              00000001
+ANS2                              00000002
+ANS3                              00000003
+ANSEL                             0000009F
+Again                             000000A8
+AreEqual                          00000112
+BindLine                          GPIO,3
+Bind_Lesen                        000001A8
+BitFound                          My_Status,1
+Bit_Count                         00000023
+Byte1                             0000002D
+Byte10                            00000036
+Byte11                            00000037
+Byte12                            00000038
+Byte13                            00000039
+Byte14                            0000003A
+Byte15                            0000003B
+Byte16                            0000003C
+Byte17                            0000003D
+Byte18                            0000003E
+Byte2                             0000002E
+Byte3                             0000002F
+Byte4                             00000030
+Byte5                             00000031
+Byte6                             00000032
+Byte7                             00000033
+Byte8                             00000034
+Byte9                             00000035
+Byte_Count                        00000024
+C                                 00000000
+CAL0                              00000002
+CAL1                              00000003
+CAL2                              00000004
+CAL3                              00000005
+CAL4                              00000006
+CAL5                              00000007
+CHS0                              00000002
+CHS1                              00000003
+CINV                              00000004
+CIS                               00000003
+CM0                               00000000
+CM1                               00000001
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE 27
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+CM2                               00000002
+CMCON                             00000019
+CMIE                              00000003
+CMIF                              00000003
+COUT                              00000006
+CP_High                           00000054
+CP_Low                            00000053
+Channel3                          GPIO,0
+CheckSum                          00000156
+Checksum_Ok                       My_Status,7
+Ck_Sum                            00000105
+Cksum_High                        0000002B
+Cont                              00000025
+Cont_Bind_Info                    0000008B
+Cont_Channel_Data                 000000C9
+Cont_Receive                      0000004F
+Copy_Byte1                        0000003F
+Copy_Byte10                       00000048
+Copy_Byte11                       00000049
+Copy_Byte12                       0000004A
+Copy_Byte13                       0000004B
+Copy_Byte14                       0000004C
+Copy_Byte15                       0000004D
+Copy_Byte16                       0000004E
+Copy_Byte2                        00000040
+Copy_Byte3                        00000041
+Copy_Byte4                        00000042
+Copy_Byte5                        00000043
+Copy_Byte6                        00000044
+Copy_Byte7                        00000045
+Copy_Byte8                        00000046
+Copy_Byte9                        00000047
+Copy_CH2_EEProm                   00000148
+Copy_Ch_Data                      0000017C
+Copy_Cont                         00000184
+DC                                00000001
+DataLine                          GPIO,2
+EEADR                             0000009B
+EECON1                            0000009C
+EECON2                            0000009D
+EEDAT                             0000009A
+EEDATA                            0000009A
+EEIE                              00000007
+EEIF                              00000007
+EEProm_Read                       000001B6
+EEProm_Write                      00000191
+EE_Again                          0000014F
+EE_Wait                           0000019D
+F                                 00000001
+FSR                               00000004
+FS_Done                           Fail_Safe,1
+Fail                              00000178
+Fail_Safe                         00000051
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE 28
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+Fail_Safe_Lesen                   000001A1
+From_Adrs                         00000026
+Full_Bit_Time                     .185
+GIE                               00000007
+GO                                00000001
+GO_DONE                           00000001
+GP0                               00000000
+GP1                               00000001
+GP2                               00000002
+GP3                               00000003
+GP4                               00000004
+GP5                               00000005
+GPIE                              00000003
+GPIF                              00000000
+GPIO                              00000005
+GPIO0                             00000000
+GPIO1                             00000001
+GPIO2                             00000002
+GPIO3                             00000003
+GPIO4                             00000004
+GPIO5                             00000005
+HouseKeeping_Exit                 00000029
+II_Loop                           0000006E
+IInner                            00000029
+INDF                              00000000
+INTCON                            0000000B
+INTE                              00000004
+INTEDG                            00000006
+INTF                              00000001
+IOC                               00000096
+IOC0                              00000000
+IOC1                              00000001
+IOC2                              00000002
+IOC3                              00000003
+IOC4                              00000004
+IOC5                              00000005
+IOCB                              00000096
+IOCB0                             00000000
+IOCB1                             00000001
+IOCB2                             00000002
+IOCB3                             00000003
+IOCB4                             00000004
+IOCB5                             00000005
+IRP                               00000007
+I_Loop                            0000006C
+I_Loop500                         00000060
+Inner                             00000028
+InputLevel                        My_Status,0
+L_Again                           000001B0
+Lesen                             000001AF
+Max_Signal_Lost                   .3
+My_Status                         00000022
+My_Temp                           0000004F
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE 29
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+NOT_BOD                           00000000
+NOT_DONE                          00000001
+NOT_GPPU                          00000007
+NOT_PD                            00000003
+NOT_POR                           00000001
+NOT_T1SYNC                        00000002
+NOT_TO                            00000004
+Next_Byte                         000000B5
+Next_Channel                      0000010C
+Normal_Op                         00000048
+Not_StartBit                      0000001D
+Not_Zero                          000000FE
+Number_of_Channels                .8
+OPTION_REG                        00000081
+OSCCAL                            00000090
+O_Loop                            0000006A
+Outer                             0000002A
+Output_Channel_Data               000000F7
+PCL                               00000002
+PCLATH                            0000000A
+PCON                              0000008E
+PEIE                              00000006
+PIE1                              0000008C
+PIR1                              0000000C
+PPM_Fail_Safe                     1
+PPM_Out                           Servo_Lines,1
+PS0                               00000000
+PS1                               00000001
+PS2                               00000002
+PSA                               00000003
+Positive                          0
+Prepare_Channel_Time              00000129
+Prog_Level                        "21PPM"
+RD                                00000000
+RP0                               00000005
+RP1                               00000006
+Read_Bit                          0000000C
+Receive_Bind_Info                 00000086
+Receive_Channel_Data              000000C3
+Request_Bind                      00000053
+Restored                          Fail_Safe,2
+SL_Counter                        00000052
+STATUS                            00000003
+Sample_Time                       .176
+Save_Byte                         000000EF
+Schreiben                         000000A1
+Selected_Channel                  00000050
+Send                              My_Status,3
+Send_Bind                         My_Status,2
+Send_Bind_Info                    000000AE
+Send_Bit                          0000001B
+Servo_Lines                       GPIO
+Setup_For_Send_BindInfo           00000075
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE 30
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+Setup_Registers_for_Receive       00000080
+ShiftData                         00000025
+Signal_Loss                       000000EB
+Signal_Lost                       Fail_Safe,0
+StartBit                          My_Status,4
+StopBit                           My_Status,5
+Stop_Bit                          00000019
+Sum_Up_Hi                         0000016C
+Sum_Up_Lo                         0000015D
+Switch_OFF                        00000021
+Switch_ON                         00000024
+T0CS                              00000005
+T0IE                              00000005
+T0IF                              00000002
+T0SE                              00000004
+T1CKPS0                           00000004
+T1CKPS1                           00000005
+T1CON                             00000010
+T1IE                              00000000
+T1IF                              00000000
+T1OSCEN                           00000003
+TMR0                              00000001
+TMR1CS                            00000001
+TMR1GE                            00000006
+TMR1H                             0000000F
+TMR1IE                            00000000
+TMR1IF                            00000000
+TMR1L                             0000000E
+TMR1ON                            00000000
+TRISIO                            00000085
+Temp                              0000002C
+Term                              0000005D
+Timer1_Channel_Pulse              0000013B
+Timer1_Sync                       0000011C
+To_Adrs                           00000027
+Use_As_Is                         00000108
+VCFG                              00000006
+VR0                               00000000
+VR1                               00000001
+VR2                               00000002
+VR3                               00000003
+VRCON                             00000099
+VREN                              00000007
+VRR                               00000005
+W                                 00000000
+WPU                               00000095
+WR                                00000001
+WREN                              00000002
+WRERR                             00000003
+Wait200m                          00000068
+Wait500u                          0000005F
+Wait_Between                      000000F4
+Wait_Ch_H                         00000142
+MPASM  5.51                    12F675TEMP.ASM   2-26-2015  14:47:45         PAGE 31
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+Wait_Ch_L                         00000124
+Wait_For_Event1                   00000090
+Wait_For_Event2                   000000D3
+Wait_Send                         000000B8
+With_Startbit                     My_Status,6
+Z                                 00000002
+_BODEN_OFF                        00003FBF
+_BODEN_ON                         00003FFF
+_CPD_OFF                          00003FFF
+_CPD_ON                           00003EFF
+_CP_OFF                           00003FFF
+_CP_ON                            00003F7F
+_EC_OSC                           00003FFB
+_EXTRC_OSC_CLKOUT                 00003FFF
+_EXTRC_OSC_NOCLKOUT               00003FFE
+_HS_OSC                           00003FFA
+_INTRC_OSC_CLKOUT                 00003FFD
+_INTRC_OSC_NOCLKOUT               00003FFC
+_LP_OSC                           00003FF8
+_MCLRE_OFF                        00003FDF
+_MCLRE_ON                         00003FFF
+_PWRTE_OFF                        00003FFF
+_PWRTE_ON                         00003FEF
+_WDT_OFF                          00003FF7
+_WDT_ON                           00003FFF
+_XT_OSC                           00003FF9
+__12F675                          00000001
+init                              00000036
+main                              00000031
+not3chan                          00000113
+status_temp                       00000021
+w_temp                            00000020
+
+Errors   :     0
+Warnings :     0 reported,     0 suppressed
+Messages :     0 reported,    19 suppressed
+
+
